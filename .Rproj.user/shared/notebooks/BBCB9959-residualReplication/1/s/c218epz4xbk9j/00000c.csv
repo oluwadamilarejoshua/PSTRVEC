@@ -1,0 +1,7 @@
+"0","library(tsDyn)"
+"2","Registered S3 method overwritten by 'quantmod':
+  method            from
+  as.zoo.data.frame zoo 
+"
+"0","vecmData = as.data.frame(cbind(cleanData$log_GDP, cleanData$Misallignment))"
+"0","head(vecmData)"

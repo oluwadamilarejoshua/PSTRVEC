@@ -1,0 +1,189 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+## The Residual Generation
+
+The residual of the dataset is generated here; first, the data is loaded into R, already cleaned up, and then modelled. Each step is explained as we proceed.
+
+#### Loading the data into R
+
+The following is how the data was loaded into R and set up as a panel data for modeling.
+
+```{r}
+readyData = read.csv("dataToUse.csv", header = T)
+summary(readyData)
+str(readyData)
+typeof(readyData)
+head(readyData)
+tail(readyData)
+```
+
+#### Linear Panel Model
+
+The linear model is estimated below. The type of linear model used is the within effect model, the residuals are also estiated, they are carried out as follows.
+
+```{r}
+library(plm)
+
+linearWithinEffectModel = plm(lnrgdp ~ lnenr, data = readyData, model = "within", effect = "time")
+summary(linearWithinEffectModel)
+
+linearWithinEffectModelGDP = plm(lnenr ~ lnrgdp, data = readyData, model = "within", effect = "time")
+summary(linearWithinEffectModelGDP)
+
+estimatedResidual = residuals(linearWithinEffectModel)
+residualForIndependentEnergy = residuals(linearWithinEffectModelGDP)
+head(estimatedResidual)
+tail(estimatedResidual)
+typeof(estimatedResidual)
+
+```
+
+#### Merging raw data and residual
+
+The data and the residual generated needs to be arranged in a particular order so itcan be useful in winRATS, hence, the entire merging and structuring is done here.
+
+```{r}
+# Loading the raw data into R
+rawData = read.csv("rawData.csv", header = T)
+head(rawData)
+summary(rawData)
+
+# structurng the estimated residual into a matrix and coercing it into a data frame
+residualFrame = as.data.frame(matrix(data = estimatedResidual, nrow = length(rawData[, 1]), ncol = (length(estimatedResidual) / length(rawData[, 1]))))
+head(residualFrame)
+residualNames = c("res_Algeria", "res_Angola", "res_Egypt", "res_Gabon", "res_Nigeria", "res_Congo")
+colnames(residualFrame, do.NULL = F)
+colnames(residualFrame) <- residualNames
+
+res_Algeria = residualFrame[, 1]
+res_Angola = residualFrame[, 2]
+res_Egypt = residualFrame[, 3]
+res_Gabon = residualFrame[, 4]
+res_Nigeria = residualFrame[, 5]
+res_Congo = residualFrame[, 6]
+
+dataOfAlgeria = cbind(rawData[, c(2, 3)], res_Algeria)
+dataOfAngola = cbind(rawData[, c(4, 5)], res_Angola)
+dataOfEgypt = cbind(rawData[, c(6, 7)], res_Egypt)
+dataOfGabon = cbind(rawData[, c(8, 9)], res_Gabon)
+dataOfNigeria = cbind(rawData[, c(10, 11)], res_Nigeria)
+dataOfCongo = cbind(rawData[, c(12, 13)], res_Congo)
+Years = rawData[, 1]
+
+dataForRATS = cbind(Years, dataOfAlgeria, dataOfAngola, dataOfEgypt, dataOfGabon, dataOfNigeria, dataOfCongo)
+
+head(dataForRATS)
+
+
+#### Matrix of the residuals when energy consumption is modelled as the independent variable ####
+
+matrixOfResidualsOfIndependentEnergy = 
+  matrix(residualForIndependentEnergy, nrow = length(rawData[, 1]), 
+         ncol = length(estimatedResidual) / length(rawData[, 1]))
+View(matrixOfResidualsOfIndependentEnergy)
+
+```
+
+#### Saving the complete data
+
+The data prepared, a table of both the original data and the estimated residual arranged accordingly, is saved to the folder of the computer system so we can access it there. The saving of the file is done below.
+
+```{r}
+write.csv(dataForRATS, file = "dataRATS.csv", row.names = F)
+
+View(residualFrame)
+
+write.csv(estimatedResidual, file = "residualOfOriginalJob.csv")
+write.csv(cleanData, file = "cleanData.csv")
+
+resid = rbind(residualFrame[, 1], residualFrame[, 2], residualFrame[, 3], residualFrame[, 4], residualFrame[, 5], residualFrame[, 6])
+dataForEviews = as.data.frame(cbind(cleanData, resid))
+View(dataForEviews)
+```
+
+### Parameter estimation
+
+The values of gamma and c are generated here using the EstPSTR function of the PSTR package for Panel Smooth Transition Regression in R. The procedure is done below
+
+```{r}
+library(tibble)
+library(PSTR)
+
+dataForPSTR = tibble(as.data.frame(cbind(readyData, estimatedResidual)))
+newClassPSTR = NewPSTR(data = dataForPSTR, dep = 3, indep = 4, iT = length(dataForRATS$Years), tvars = c(3, 4))
+
+newClassPSTR = LinTest(use = newClassPSTR)
+print(newClassPSTR, "tests")
+
+newClassPSTR = EstPSTR(use = pstr,im=1,iq=1,useDelta=T,par=c(-0.462,0), vLower=4, vUpper=4, method = "L-BFGS-B")
+print(newClassPSTR,"estimates")
+
+# Including the residuals
+newClean = read.csv("dataForEviews.csv")
+head(newClean)
+newClean = tibble(as.data.frame(newClean))
+
+#### Linearity test of dependent GDP ####
+iT = length(dataForRATS$Years)
+pstr = NewPSTR(data = newClean,
+               dep = 3, indep = c(4, 5), iT = iT, tvars = c(3, 4, 5), im = 3)
+
+pstr = LinTest(use = pstr)
+print(pstr, "tests")
+
+pstr = EstPSTR(use = pstr, im = 1,iq=1,useDelta=T, par=c(-0.462,0), vLower=4, vUpper=4, method = "L-BFGS-B")
+print(pstr, "estimates")
+
+summary(pstr)
+
+
+#### Linearity test of dependent Energy ####
+
+pstr_energy = NewPSTR(data = newClean, dep = 4, indep = c(3, 5), iT = length(dataForRATS$Years), tvars = c(3, 4, 5), im = 3)
+
+pstr_energy = LinTest(use = pstr_energy)
+print(pstr_energy, "tests")
+
+
+
+```
+
+### Search for gamma and c
+Using the Support Vector Machines procedure
+
+```{r}
+library(caret)
+library(superml)
+
+head(readyData)
+head(estimatedResidual)
+
+df_data = as.data.frame(cbind(readyData[, -c(1, 2)], estimatedResidual))
+head(df_data)
+
+classifierMain = train(form = lnrgdp ~ ., data = df_data, method = 'svmRadial')
+classifierMain
+
+table(readyData[, 1])
+
+# Using superml grid search ------------------------------------------------
+
+rf <- XGBTrainer$new()
+gst <-GridSearchCV$new(trainer = rf,
+                      parameters = list(n_estimators = c(2),
+                                        max_depth = c(2,18)),
+                                        n_folds = 2,
+                                        scoring = c('accuracy','auc'))
+data("readyData")
+#gst$fit(readyData, "lnenr")
+#gst$best_iteration()
+
+
+
+```
+
+
+

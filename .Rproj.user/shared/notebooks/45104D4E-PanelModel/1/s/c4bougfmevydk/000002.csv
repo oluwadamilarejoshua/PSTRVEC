@@ -1,0 +1,228 @@
+"0","library(xgboost)"
+"0","data(agaricus.train, package='xgboost')"
+"0","data(agaricus.test, package='xgboost')"
+"0",""
+"0",""
+"0",""
+"0","dtrain <- xgb.DMatrix(agaricus.train$data, label = agaricus.train$label)"
+"0","dtest <- xgb.DMatrix(agaricus.test$data, label = agaricus.test$label)"
+"0","watchlist <- list(train = dtrain, eval = dtest)"
+"0",""
+"0","## A simple xgb.train example:"
+"0","param <- list(max_depth = 2, eta = 1, verbose = 0, nthread = 2,"
+"0","              objective = ""binary:logistic"", eval_metric = ""auc"")"
+"0","bst <- xgb.train(param, dtrain, nrounds = 2, watchlist)"
+"1","[10:00:58] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-auc:0.958228	eval-auc:0.960373"
+"1"," "
+"1","
+"
+"1","[2]	train-auc:0.981413	eval-auc:0.979930"
+"1"," "
+"1","
+"
+"0","## An xgb.train example where custom objective and evaluation metric are used:"
+"0","logregobj <- function(preds, dtrain) {"
+"0","   labels <- getinfo(dtrain, ""label"")"
+"0","   preds <- 1/(1 + exp(-preds))"
+"0","   grad <- preds - labels"
+"0","   hess <- preds * (1 - preds)"
+"0","   return(list(grad = grad, hess = hess))"
+"0","}"
+"0","evalerror <- function(preds, dtrain) {"
+"0","  labels <- getinfo(dtrain, ""label"")"
+"0","  err <- as.numeric(sum(labels != (preds > 0)))/length(labels)"
+"0","  return(list(metric = ""error"", value = err))"
+"0","}"
+"0",""
+"0","# These functions could be used by passing them either:"
+"0","#  as 'objective' and 'eval_metric' parameters in the params list:"
+"0","param <- list(max_depth = 2, eta = 1, verbose = 0, nthread = 2,"
+"0","              objective = logregobj, eval_metric = evalerror)"
+"0","bst <- xgb.train(param, dtrain, nrounds = 2, watchlist)"
+"1","[10:01:01] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-error:0.046522	eval-error:0.042831"
+"1"," "
+"1","
+"
+"1","[2]	train-error:0.022263	eval-error:0.021726"
+"1"," "
+"1","
+"
+"0","#  or through the ... arguments:"
+"0","param <- list(max_depth = 2, eta = 1, verbose = 0, nthread = 2)"
+"0","bst <- xgb.train(param, dtrain, nrounds = 2, watchlist,"
+"0","                 objective = logregobj, eval_metric = evalerror)"
+"1","[10:01:02] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-error:0.046522	eval-error:0.042831"
+"1"," "
+"1","
+"
+"1","[2]	train-error:0.022263	eval-error:0.021726"
+"1"," "
+"1","
+"
+"0","#  or as dedicated 'obj' and 'feval' parameters of xgb.train:"
+"0","bst <- xgb.train(param, dtrain, nrounds = 2, watchlist,"
+"0","                 obj = logregobj, feval = evalerror)"
+"1","[10:01:02] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-error:0.046522	eval-error:0.042831"
+"1"," "
+"1","
+"
+"1","[2]	train-error:0.022263	eval-error:0.021726"
+"1"," "
+"1","
+"
+"0","## An xgb.train example of using variable learning rates at each iteration:"
+"0","param <- list(max_depth = 2, eta = 1, verbose = 0, nthread = 2,"
+"0","              objective = ""binary:logistic"", eval_metric = ""auc"")"
+"0","my_etas <- list(eta = c(0.5, 0.1))"
+"0","bst <- xgb.train(param, dtrain, nrounds = 2, watchlist,"
+"0","                 callbacks = list(cb.reset.parameters(my_etas)))"
+"1","[10:01:04] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-auc:0.958228	eval-auc:0.960373"
+"1"," "
+"1","
+"
+"1","[10:01:04] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[2]	train-auc:0.992347	eval-auc:0.994009"
+"1"," "
+"1","
+"
+"0","## Early stopping:"
+"0","bst <- xgb.train(param, dtrain, nrounds = 25, watchlist,"
+"0","                 early_stopping_rounds = 3)"
+"1","[10:01:05] WARNING: amalgamation/../src/learner.cc:480: 
+Parameters: { verbose } might not be used.
+
+  This may not be accurate due to some parameters are only used in language bindings but
+  passed down to XGBoost core.  Or some parameters are not used but slip through this
+  verification. Please open an issue if you find above cases.
+
+
+"
+"1","[1]	train-auc:0.958228	eval-auc:0.960373"
+"1"," "
+"1","
+"
+"1","Multiple eval metrics are present. Will use "
+"1",""
+"1","eval_auc"
+"1",""
+"1"," for early stopping.
+"
+"1","Will train until "
+"1",""
+"1","eval_auc"
+"1",""
+"1"," hasn't improved in "
+"1",""
+"1","3"
+"1",""
+"1"," rounds.
+
+"
+"1","[2]	train-auc:0.981413	eval-auc:0.979930"
+"1"," "
+"1","
+"
+"1","[3]	train-auc:0.997070	eval-auc:0.998518"
+"1"," "
+"1","
+"
+"1","[4]	train-auc:0.998757	eval-auc:0.998943"
+"1"," "
+"1","
+"
+"1","[5]	train-auc:0.999298	eval-auc:0.999830"
+"1"," "
+"1","
+"
+"1","[6]	train-auc:0.999585	eval-auc:1.000000"
+"1"," "
+"1","
+"
+"1","[7]	train-auc:0.999585	eval-auc:1.000000"
+"1"," "
+"1","
+"
+"1","[8]	train-auc:0.999916	eval-auc:1.000000"
+"1"," "
+"1","
+"
+"1","[9]	train-auc:0.999916	eval-auc:1.000000"
+"1"," "
+"1","
+"
+"1","Stopping. Best iteration:
+"
+"1",""
+"1","[6]	train-auc:0.999585	eval-auc:1.000000"
+"1",""
+"1","
+
+"
+"0","## An 'xgboost' interface example:"
+"0","bst <- xgboost(data = agaricus.train$data, label = agaricus.train$label,"
+"0","               max_depth = 2, eta = 1, nthread = 2, nrounds = 2,"
+"0","               objective = ""binary:logistic"")"
+"1","[1]	train-error:0.046522"
+"1"," "
+"1","
+"
+"1","[2]	train-error:0.022263"
+"1"," "
+"1","
+"
+"0","pred <- predict(bst, agaricus.test$data)"
+"0",""
+"0",""

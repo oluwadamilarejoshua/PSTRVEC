@@ -1,0 +1,418 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# Replication of residual of the data used.
+
+## Loading the data into R
+
+The data was loaded into R as "originalData" and then splited such that the two variables for the 14 countries are stored in a new data frame (Table) named "realVariables" while the residuals to be replicated were stored in another data frame name "residualToBeReplicated"; These are done with the codes below.
+
+```{r}
+# Loading the original data into R, Validating the dimension of the data imported, and checking the display of the data in R by viewing the first few entries
+originalData = read.csv("data_paper3_70.csv", header = T)
+dim(originalData)
+head(originalData)
+
+# Creating a variable of list of headers to be used for the subsetting as well as spliting the data accordingly
+headerForRealVariables = c(1,2,4,5,7,8,10,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41)
+
+realVariables = originalData[, headerForRealVariables]
+head(realVariables)
+
+residualToBeReplicated = originalData[, -headerForRealVariables]
+head(residualToBeReplicated)
+```
+
+## Modelling the linear relationship
+
+The first linear model was done with the logGDP (y) taken to be the dependent variable while the Exchage rate misallignment (misal) is taken as the independent variable. The modelling process is done below.
+
+```{r}
+library(plm)
+read.csv("panelClean.csv", header = T) -> cleanData
+
+View(cleanData)
+
+# Panel Linear Random Effect model
+
+modelForRandomEffect = plm(log_GDP ~ Misallignment, data = cleanData, model = "random", effect = "time")
+summary(modelForRandomEffect)
+
+estimatedResidualsForRandomEffect = residuals(modelForRandomEffect)
+head(estimatedResidualsForRandomEffect)
+
+
+
+# Panel Linear Pooling Model
+
+modelForPooling = plm(log_GDP ~ Misallignment, data = cleanData, model = "pooling", effect = "time")
+summary(modelForPooling)
+
+estimatedResidualsForPooling = residuals(modelForPooling)
+head(estimatedResidualsForPooling)
+
+
+
+# Panel Linear First Difference Model
+
+modelForFirstDifference = plm(log_GDP ~ Misallignment, data = cleanData, model = "fd", effect = "individual")
+summary(modelForFirstDifference)
+
+estimatedResidualsForFirstDifference = residuals(modelForFirstDifference)
+head(estimatedResidualsForFirstDifference)
+
+
+# Panel Linear Between Effect Model
+
+modelForBetweenEffect = plm(log_GDP ~ Misallignment, data = cleanData, model = "between", effect = "time")
+summary(modelForBetweenEffect)
+
+estimatedResidualsForBetweenEffect = residuals(modelForBetweenEffect)
+head(estimatedResidualsForBetweenEffect)
+
+
+
+
+
+
+#residualForInd1WithDependentGDP = realVariables[, 1] - as.vector(estimateForIndi1WithDependentGDP)
+#View(residualForInd1WithDependentGDP)
+
+
+modelForInd1WithIndependentGDP = lm(misal1 ~ y1, data = realVariables)
+summary(modelForInd1WithIndependentGDP)
+
+estimateForIndi1WithIndependentGDP = predict.lm(modelForInd1WithIndependentGDP)
+head(estimateForIndi1WithIndependentGDP)
+
+residualForInd1WithIndependentGDP = realVariables[, 1] - as.vector(estimateForIndi1WithIndependentGDP)
+
+head(residualForInd1WithIndependentGDP)
+```
+
+### The Panel Cointegrartion Package
+
+```{r}
+library(pco)
+str(originalData)
+yColumns = c(1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40)
+xColumns = c(2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41)
+
+gdpData = originalData[, yColumns]
+misalData =  originalData[, xColumns]
+
+pedroni99(gdpData, misalData)
+
+```
+
+
+
+### Linearity test
+
+The linearity test is duplicated here with the independent variable lagged.
+
+```{r}
+library(stats)
+
+linearityGDP_Misal = plm(log_GDP ~ lag(Misallignment, 2), data = cleanData, index = c("Year", "Country"), model = "within")
+summary(linearityGDP_Misal)
+
+
+linearityMisal_GDP = plm(Misallignment ~ lag(log_GDP, 2), data = cleanData, model = "within", index = c("Year", "Country"), effect = "time")
+summary(linearityMisal_GDP)
+
+```
+
+
+### Vector Error Correction Model (VECM)
+
+```{r}
+library(tsDyn)
+
+vecmData = as.data.frame(cbind(cleanData$log_GDP, cleanData$Misallignment))
+head(vecmData)
+
+#colnames(vecmData) = c("log_GDP", "Misallignment")
+vecErrCorMod = VECM(data = vecmData, lag = 2, include = "both", exogen = cleanData$log_GDP)
+summary(vecErrCorMod)
+
+
+
+```
+
+
+
+### Linear model
+
+The following contains the model used to generate the residual used as well as model used to eveluate and establish the linear relationship between the varriables.
+
+```{r}
+
+# Panel Linear Within Effect Model -------------------------------------------
+
+modelForWithinEffect = plm(log_GDP ~ Misallignment, data = cleanData, model = "within", effect = "time")
+summary(modelForWithinEffect)
+View(modelForWithinEffect)
+modelForWithinEffect
+
+residualForGDP = residuals(modelForWithinEffect)
+head(residualForGDP)
+min(cleanData$log_GDP)
+max(cleanData$Misallignment) / min(cleanData$log_GDP)
+
+modelForWithinEffectGDP = plm(Misallignment ~ log_GDP, data = cleanData, model = "within", effect = "time")
+summary(modelForWithinEffectGDP)
+
+residualForMisallignment = residuals(modelForWithinEffectGDP)
+head(residualForMisallignment)
+
+
+attach(cleanData)
+prepForUnitRoot = data.frame(cbind(Year, Country, residualForGDP,
+                                   residualForMisallignment))
+
+## Panel unit root tests --------------------------------------------------
+
+###ipsTestResult = purtest(Misallignment ~ 1, data = cleanData, index = c("Year", "Country"), pmax = 4, test = "ips", lags = "AIC", exo = "intercept")
+###summary(ipsTestResult)
+
+###ipsTestResult2 = purtest(log_GDP ~ 1, data = cleanData, index = c("Year", "Country"), pmax = 4, test = "ips", lags = "AIC", exo = "intercept")
+####summary(ipsTestResult2)
+## Panel unit root tests using residuals
+
+attach(cleanData)
+prepForUnitRoot = data.frame(cbind(Year, Country, residualForGDP, residualForMisallignment))
+
+## Panel unit root tests ---------------------------------------------------------
+
+ipsTestResult = purtest(residualForMisallignment ~ 1, data = prepForUnitRoot, index = c("Year", "Country"), pmax = 4, test = "ips", lags = "AIC", exo = "intercept")
+summary(ipsTestResult)
+
+ipsTestResult2 = purtest(residualForGDP ~ 1, data = prepForUnitRoot, index = c("Year", "Country"), pmax = 4, test = "ips", lags = "AIC", exo = "intercept")
+summary(ipsTestResult2)
+
+
+feasibleModel = pggls(log_GDP ~ Misallignment, data = cleanData, effect = "time", model = "within")
+summary(feasibleModel)
+
+### The grid search algorithm ####
+library(zoomgrid)
+library(NMOF)
+library(rpart)
+
+#--- zoomgrid package usage--------------------------------
+#ret2 = grid_search(modelForWithinEffect, grid, num=2, parallel=TRUE, silent=FALSE)
+
+#--- NMOF package usage------------------------------------
+
+
+```
+
+
+## Panel Smooth Transition Regression
+
+The data was run as a Panel Smooth Transition Regression class by implementing the PSTR package of R to carry out linearity test.
+
+```{r}
+library(PSTR)
+library(tibble)
+library(stats)
+
+newCleanData = read.csv("replicationEviews.csv")
+panelData = tibble(newCleanData[, -c(1, 2)])
+str(panelData)
+
+pstr = NewPSTR(data = panelData, dep = 2, indep = c(1, 3), iT = 45, 
+               tvars = c(1, 2, 3), im = 3)
+print(pstr)
+
+
+pstr = LinTest(use = pstr)
+print(pstr, "tests")
+
+#### Linearity test for Independent Misal ####
+
+
+pstrMisal = NewPSTR(data = panelData, 
+                    dep = 2, indep = c(1, 3), iT = 45, tvars = c(1, 2, 3), im = 3)
+print(pstrMisal)
+
+
+pstrMisal = LinTest(use = pstrMisal)
+print(pstrMisal, "tests")
+
+#### Continuation of data evaluation ####
+
+pstr = EstPSTR(use = pstr,im=1,iq=1,useDelta=T,par=c(-0.462,0), vLower=4, vUpper=4, method = "L-BFGS-B")
+print(pstr,"estimates")
+
+
+pstr = EvalTest(use = pstr, type = "heterogeneity", vq=pstr$mQ[,1])
+#pstr =WCB_HETest(use = pstr, vq=pstr$mQ[,1], iB = 100, parallel = F, cpus = 4)
+print(pstr, "eval")
+
+
+#wildClusterBootstrap = WCB_LinTest(use = pstr, iB = 800)
+#summary(wildClusterBootstrap)
+
+#wildClusterBootstrap$wcb_test
+
+#length(wildClusterBootstrap$c)
+
+#wildClusterBootstrap$gamma
+
+# Creating a new table
+library(stats)
+#laggedGDP = lag(cleanData$log_GDP, k = 2)
+#laggedMisal = lag(cleanData$Misallignment, k = 2)
+#newOne = cbind(cleanData, laggedGDP, laggedMisal)
+
+#head(newOne)
+
+
+panelDataReal = tibble(cleanData)
+head(panelDataReal)
+
+pstr2 = NewPSTR(data = panelDataReal, dep = 3, indep = 4, iT = 45, tvars = c(3, 4))
+pstr3 = NewPSTR(data = panelDataReal, dep = 3, indep = c(3, 4), iT = 45, tvars = c(lag(3, k = 2), lag(4, k = 2)))
+print(pstr2)
+print(pstr3)
+
+pstr2 = LinTest(use = pstr2)
+pstr3 = LinTest(use = pstr3)
+print(pstr2, "tests")
+print(pstr3, "tests")
+
+#### Search for gamma and c (Support Vector Machines) ------------------------------
+library(caret)
+
+  #### Using linear method ####----------------------------------------------------
+head(panelData)
+classifier = train(form = log_GDP ~ ., data = panelData, method = 'svmRadial')
+classifier
+
+
+```
+
+#### Simple Linear Regression
+
+The following is the conventional univariate simple linear regression which is then used to generate residual for the dependent variable.
+
+```{r}
+head(cleanData)
+
+simpleModel = lm(log_GDP ~ Misallignment, data = cleanData)
+simpleModel
+
+simpleResidual = residuals.lm(simpleModel)
+
+head(simpleResidual)
+```
+
+#### Simple Linear Regression for individuals
+
+The following is the conventional univariate simple linear regression for the individuals done separately. The residuals for the first individual is generated  below using this procedure.
+```{r}
+# The residual generation for the first indiividual in the panel
+
+head(originalData)
+
+modelOfFirstIndividual = lm(y1 ~  misal1, data = originalData)
+modelOfFirstIndividual
+
+residualOfFirstIndividual = residuals.lm(modelOfFirstIndividual)
+head(residualOfFirstIndividual)
+
+```
+
+
+## The Panel Linear Within Effect model
+
+The panel modelling technique of the within effect model produced the residual, of all the modelling procedures used, that is closest to the residual we are working towards. Few data of the residual generated with this model are shown below
+
+```{r}
+head(estimatedResidualsForWithinEffect)
+tail(estimatedResidualsForWithinEffect)
+
+withinResiduals = data.matrix(frame = matrix(data = estimatedResidualsForWithinEffect, nrow = 45, ncol = (length(estimatedResidualsForWithinEffect) / 45)))
+
+View(withinResiduals)
+write.csv(withinResiduals, file = "MyGeneratedResiduals.csv")
+```
+
+#### Unit Root and Cointegration tests
+
+The urca package of R was used to investigate this, and the evaluation are done with the following commands
+
+```{r}
+library(urca)
+
+theTest = ca.jo(as.data.frame(cbind(cleanData$log_GDP, cleanData$Misallignment)), type = "eigen", ecdet = "trend", K = 2, spec = "transitory")
+summary(theTest)
+```
+
+#### Cointegration Test
+
+```{r}
+library(pco)
+
+dependentColumns = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27)
+dependentMatrix = realVariables[, dependentColumns]
+head(dependentMatrix)
+
+independentMatrix = realVariables[, -dependentColumns]
+head(independentMatrix)
+
+## The cointegration test
+
+cointegrationTest = pedroni99(dependentMatrix, independentMatrix, kk = 4, type.stat = 3)
+summary(cointegrationTest)
+
+cointegrationTest
+
+```
+
+## Linearity Tests
+
+```{r}
+library(timeSeries)
+
+linearityData = read.csv("dataForTests.csv")
+View(linearityData)
+residualOfGDP = as.timeSeries(linearityData$Residual)
+str(residualOfGDP)
+
+laggedResidualOfGDP = lag(x = residualOfGDP, k = 2)
+laggedResidualOfGDP
+length(laggedResidualOfGDP$`SS.1[2]`)
+
+laggedResidualOfGDP = as.vector(laggedResidualOfGDP$`SS.1[2]`)
+typeof(laggedResidualOfGDP)
+
+
+length(linearityData$Misallignment)
+length(laggedResidualOfGDP)
+
+dataForFirstTest = as.data.frame(cbind(linearityData$Misallignment, laggedResidualOfGDP))
+View(dataForFirstTest)
+
+firstLinearityFit = lm(dataForFirstTest$V1 ~ laggedResidualOfGDP, data = dataForFirstTest)
+summary(firstLinearityFit)
+
+#correlationTest = cor(dataForFirstTest$V1, dataForFirstTest$laggedResidualOfGDP,                     na.rm = T, use = "pairwise.complete.obs")
+#correlationTest
+
+```
+
+
+
+
+
+
+
+
+
+
+
