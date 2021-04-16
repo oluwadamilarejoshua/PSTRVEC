@@ -37,33 +37,6 @@ df_mSubsriptT = df_identityMatrix - (df_tauOfT %*% solve(crossprod(df_tauOfT)) %
                                        t(df_tauOfT))
 View(df_mSubsriptT)
 
-###
-
-# Sum of squared residual ------------------------------------------------
-#iT = 38
-#iN = 6
-#ik = 0
-#im = 1
-#mXb = readyData$lnenr #The vector independent variable over all cross section combined
-
-
-
-#vQ = readyData$lnrgdp
-
-#tmp = unname(quantile(vQ, (1:im)/(im + 1)))
-
-#param = c(log(8/min(diff(c(0, tmp)))), tmp)  
-
-#param[1] = log(param[1])
-#param
-#ssr = function(){
- # sumOfSquaredResid = sum(estimatedResidual^2)
-  #return(sumOfSquaredResid)
-#}
-
-#optimized = optim(param, fn = ssr, method = "SANN")
-
-#pstr$iq
 
 ####tstat for independent GDP --------------------------------------------------
 

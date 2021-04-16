@@ -108,7 +108,6 @@ pedroni99(gdpData, misalData)
 ```
 
 
-
 ### Linearity test
 
 The linearity test is duplicated here with the independent variable lagged.

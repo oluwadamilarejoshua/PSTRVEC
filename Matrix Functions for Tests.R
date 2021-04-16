@@ -196,8 +196,8 @@ for (i in 1:numberOfIndividuals) {
 View(matrixOfSecondLagsOfMisallignment)
 
 wo = as.data.frame(matrixOfSecondLagsOfMisallignment)
-theLaggedMisal = as.vector(c(wo$V1, wo$V2, wo$V3, wo$V4, wo$V5, wo$V6, wo$V7, wo$V8, 
-                             wo$V9, wo$V10, wo$V11, wo$V12, wo$V13, wo$V14))
+theLaggedMisal = c(wo$V1, wo$V2, wo$V3, wo$V4, wo$V5, wo$V6, wo$V7, wo$V8, 
+                             wo$V9, wo$V10, wo$V11, wo$V12, wo$V13, wo$V14)
 str(theLaggedMisal)
 theLaggedError = as.timeSeries(newCleanData$Residual)
 theLaggedError = as.vector(lag(x = theLaggedError, k =  2))

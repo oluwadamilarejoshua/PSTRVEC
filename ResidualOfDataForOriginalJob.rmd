@@ -97,7 +97,7 @@ write.csv(dataForRATS, file = "dataRATS.csv", row.names = F)
 View(residualFrame)
 
 write.csv(estimatedResidual, file = "residualOfOriginalJob.csv")
-write.csv(cleanData, file = "cleanData.csv")
+# write.csv(cleanData, file = "cleanData.csv")
 
 resid = rbind(residualFrame[, 1], residualFrame[, 2], residualFrame[, 3], residualFrame[, 4], residualFrame[, 5], residualFrame[, 6])
 dataForEviews = as.data.frame(cbind(cleanData, resid))
