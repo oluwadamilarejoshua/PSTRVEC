@@ -9,7 +9,7 @@ df_individuals = 6
 df_time = 38
 
 
-#-- The tau and the idntity matrix--------------------------------------------------------
+#-- The tau and the identity matrix--------------------------------------------------------
 df_tau = vector(length = df_time)
 for (i in 1:df_time) {
   df_tau[i] = 1

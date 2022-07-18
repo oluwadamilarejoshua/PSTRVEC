@@ -1,6 +1,0 @@
-"0",""
-"0","# Creating a variable of list of headers to be used for the subsetting as well as spliting the data accordingly"
-"0","headerForRealVariables = c(1,2,4,5,7,8,10,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41)"
-"0",""
-"0","realVariables = originalData[, headerForRealVariables]"
-"0","head(realVariables)"

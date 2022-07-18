@@ -57,7 +57,6 @@ df_matrixOfCubesOfLaggedYs = (df_matrixOfLaggedYs)^3
 View(df_matrixOfCubesOfLaggedYs)
 
 
-
 # Defining the sigma squares -----------------------------------------------
 df_vectorOfSigmaSquares = vector(length = 14)
 for (i in 1:df_individualsNumber) {
@@ -154,10 +153,6 @@ df_vectorOfTStatsOfEnergyTest
 df_tStatofEnergyTest = sum(df_vectorOfTStatsOfEnergyTest) / df_individualsNumber
 df_tStatofEnergyTest
 
-
-
-
-#----------------------------------------------------------------------------------------
 # Nonlinear Cointegration test ----------------------------------------------------------
 
 

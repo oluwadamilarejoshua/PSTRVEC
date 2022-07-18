@@ -431,14 +431,6 @@ View(matrixOfLaggedY14)
 
 
 
-
-
-
-
-
-
-
-
 # Nonlinear Cointegration test -----------------------------------------
     # For Dependent GDP
 

@@ -1,1 +1,0 @@
-{"frames":[],"message":"Error in cor(dataForFirstTest$V1, dataForFirstTest$laggedResidualOfGDP,  : \n  unused argument (na.rm = T)\n"}

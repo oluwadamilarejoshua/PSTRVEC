@@ -1,3 +1,4 @@
 *.docx
 *.xlsx
 /Nonlinear Model Estimation
+.Rproj.user
